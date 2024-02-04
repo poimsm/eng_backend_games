@@ -3,10 +3,8 @@ FROM python:3.10.5-bullseye
 RUN apt-get clean all
 RUN apt-get update
 RUN apt-get install -y vim
-RUN apt-get install -y ffmpeg
 
 RUN pip install --upgrade pip
-RUN pip install transformers tensorflow
 
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt

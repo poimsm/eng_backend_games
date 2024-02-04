@@ -6,9 +6,4 @@ psycopg2==2.9.3
 Pillow==9.2.0
 djangorestframework==3.13.1
 djangorestframework-simplejwt==5.2.0
-word-forms==2.1.0
 requests==2.31.0
-textstat==0.7.3
-gensim==4.3.2
-openai==1.6.1
-ffmpeg-python==0.2.0
