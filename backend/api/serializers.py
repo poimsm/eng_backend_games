@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from users.models import User
 from api.models import (
-    Question, UserProfile, Style, Device,
+    Question, UserProfile, Device,
     ScreenFlow,
 )
 
@@ -24,7 +24,6 @@ class UserProfileModelSerializer(serializers.ModelSerializer):
         # fields = ['total_sentences', 'user', 'verified', 'screen_flow', 'email', 'id']
 
 
-
 class QuestionModelSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -37,21 +36,6 @@ class QuestionFullSerializer(serializers.ModelSerializer):
     class Meta:
         model = Question
         fields = '__all__'
-
-
-class StyleModelSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Style
-        fields = '__all__'
-
-
-class StylePresentationSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Style
-        fields = ['background_screen',
-                  'background_challenge', 'question_opacity']
 
 
 class DeviceModelSerializer(serializers.ModelSerializer):

@@ -4,8 +4,8 @@ from django.conf import settings
 import traceback
 
 # Custom
-from api.models import Question, Style
-from api.helpers import console, read_JSON_file, make_prefix
+from api.models import Question
+from api.helpers import console, read_JSON_file
 
 
 class Command(BaseCommand):
@@ -18,75 +18,115 @@ class Command(BaseCommand):
         console.info('--------------------------------')
 
         try:
-            console.info('Reading questions JSON file...')
-            questions = read_JSON_file('data/questions.json')
+            console.info('Reading questions JSON files...')
+            normal_questions = read_JSON_file('data/questions/normal.json')
+            intrig_questions = read_JSON_file('data/questions/intriguing.json')
+            picture_questions = read_JSON_file('data/questions/picture.json')
+            fantasy_questions = read_JSON_file('data/questions/fantasy.json')
+            outdoor_questions = read_JSON_file('data/questions/outdoor.json')
+            puzzle_questions = read_JSON_file('data/questions/puzzle.json')
+            job_questions = read_JSON_file('data/questions/jobs.json')
+            rpg_questions = read_JSON_file('data/questions/rpg.json')
 
-            console.info('Creating ' + str(len(questions)) + ' questions...')
+            console.info('[x] Normal: ' + str(len(normal_questions)))
+            console.info('[x] Intriguing: ' + str(len(intrig_questions)))
+            console.info('[x] Picture: ' + str(len(picture_questions)))
+            console.info('[x] Fantasy: ' + str(len(fantasy_questions)))
+            console.info('[x] Outdoor: ' + str(len(outdoor_questions)))
+            console.info('[x] Puzzle: ' + str(len(puzzle_questions)))
+            console.info('[x] Jobs: ' + str(len(job_questions)))
+            console.info('[x] RPG: ' + str(len(rpg_questions)))
 
-            for q in questions:
-                print('Populatin question ID: ' + str(q['id']))
+            console.info('Creating questions...')
+            self.create_questions(normal_questions)
+            self.create_questions(intrig_questions)
+            self.create_questions(picture_questions)
+            self.create_questions(fantasy_questions)
+            self.create_questions(outdoor_questions)
+            self.create_questions(puzzle_questions)
+            self.create_questions(job_questions)
+            self.create_questions(rpg_questions)
 
-                difficulty_level = {
-                    'easy': 0,
-                    'moderate': 1,
-                    'complex': 2,
-                }
-
-                media = settings.SITE_DOMAIN + '/media'
-                folder = 'questions/' + make_prefix(q['id'])
-
-                example = q.get('example', None)
-
-                if q['example']:
-                    exam_dir = make_prefix(q['example'])
-                    example = read_JSON_file(f'data/examples/' + exam_dir + '/index.json')
-                    example['voice_url'] = f'{media}/{folder}/example.mp3'
-
-                
-                # scenario = {} if q['type'] == 3 else None
-                scenario = q.get('scenario', None)
-
-                if scenario:
-                    for i, part in enumerate(scenario['parts']):
-                        part_options = part.get('options', None)
-                        part_voice = part.get('voice_url', None)
-                        part_image = part.get('image_url', None)
-
-                        if part_image:
-                            scenario['parts'][i]['image_url'] =  f'{media}/{folder}/{part_image}'
-
-                        if part_voice:
-                            scenario['parts'][i]['voice_url'] =  f'{media}/{folder}/{part_voice}'
-
-                        if part_options:
-                            for j, opt in enumerate(part_options):
-                                opt_img = opt['image_url']
-                                if opt_img:
-                                    scenario['parts'][i]['options'][j]['image_url'] =  f'{media}/{folder}/{opt_img}'                
-
-                Question(
-                    id=q['id'],
-                    question=q['question'],
-                    voice_url=f'{media}/{folder}/voice.mp3',
-                    image_url=f'{media}/{folder}/image.jpg',
-                    difficulty=difficulty_level[q['difficulty']],
-                    notes=q['help'],
-                    type=q['type'],
-                    example=example,
-                    scenario=scenario,
-                    status= 1 if q['ready'] else 0
-                ).save()
-
-                question = Question.objects.get(id=q['id'])
-
-                Style(
-                    background_screen=q['style']['background_screen'],
-                    background_challenge=q['style']['background_challenge'],
-                    question=question
-                ).save()
-
-            console.info('Successfully completed!')
-
+            console.info('Done')
         except:
             traceback.print_exc()
             console.error('Process Failed!')
+
+    def create_questions(self, questions):
+        for q in questions:
+
+            if not q['ready']:
+                continue
+            example = read_JSON_file(q['example'])
+
+            if example:
+                example['voice_url'] = self.create_url(example['voice_url'])
+
+            # scenario = {} if q['type'] == 3 else None
+            scenario = q.get('scenario', None)
+
+            if scenario:
+                for i, part in enumerate(scenario['parts']):
+                    part_options = part.get('options', None)
+                    part_voice = part.get('voice_url', None)
+                    part_image = part.get('image_url', None)
+
+                    if part_image:
+                        scenario['parts'][i]['image_url'] = self.create_url(
+                            part_image)
+
+                    if part_voice:
+                        scenario['parts'][i]['voice_url'] = self.create_url(
+                            part_voice)
+
+                    if part_options:
+                        for j, opt in enumerate(part_options):
+                            opt_img = opt['image_url']
+                            if opt_img:
+                                scenario['parts'][i]['options'][j]['image_url'] = self.create_img_url(
+                                    opt_img)
+
+            voice_url = self.create_url(q['voice_url'])
+            image_url = self.create_url(q['image_url'])
+            style = self.create_style(q.get('style', None))
+            difficulty = self.difficulty_level(q['difficulty'])
+
+            Question(
+                question=q['question'],
+                voice_url=voice_url,
+                image_url=image_url,
+                difficulty=difficulty,
+                category=q['category'],
+                notes=q.get('help', None),
+                type=q['type'],
+                example=example,
+                scenario=scenario,
+                style=style,
+                status=1 if q['ready'] else 0
+            ).save()
+
+    def create_url(self, chunk):
+        media = settings.SITE_DOMAIN + '/media'
+        return None if not chunk else f"{media}/{chunk}"
+
+    def difficulty_level(self, difficulty):
+        level = {
+            'easy': 0,
+            'moderate': 1,
+            'complex': 2,
+        }
+        return level[difficulty]
+
+    def create_style(self, style):
+        if not style:
+            return {
+                'background_screen': '#171717',
+                'background_challenge': '#2A262C',
+                'question_opacity': 0.4,
+            }
+
+        return {
+            'background_screen': style.get('background_screen', '#171717'),
+            'background_challenge': style.get('background_challenge', '#2A262C'),
+            'question_opacity': style.get('question_opacity', 0.4),
+        }

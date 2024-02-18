@@ -43,6 +43,8 @@ def unique(sequence):
 
 
 def read_JSON_file(path):
+    if not path:
+        return None
     file = open(os.path.join(settings.BASE_DIR, path))
     data = file.read()
     file.close()

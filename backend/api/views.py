@@ -23,6 +23,7 @@ from django.db import transaction, IntegrityError
 from rest_framework.exceptions import AuthenticationFailed
 from django.db.models import Q
 from django.db.models import Case, When
+from django.conf import settings
 
 
 # Data
@@ -31,7 +32,7 @@ from api.constants import AppMsg
 # Models
 from users.models import User
 from api.models import (
-    Question, UserProfile, Style,
+    Question, UserProfile,
     QuestionType, Difficulty, Device,
     QuestionConfig,
 )
@@ -44,7 +45,6 @@ from api.serializers import (
     UserModelSerializer,
     UserProfileModelSerializer,
     DeviceModelSerializer,
-    StylePresentationSerializer,
     ScreenFlowSerializer,
 )
 from users.serializers import CustomTokenObtainPairSerializer
@@ -281,7 +281,7 @@ def first_time_questions(viewed_pack_ids, starting_question_packs):
 
 
 @api_view(['GET'])
-def questions(request):
+def questions2(request):
 
     lang = request.GET.get('lang', None)
     # first_time = request.GET.get('first_time', None)
@@ -306,8 +306,6 @@ def questions(request):
 
     result = []
     for q in questions:
-        style = Style.objects.get(question=q.id)
-
         result.append({
             'id': q.id,
             'question': q.question,
@@ -316,8 +314,98 @@ def questions(request):
             'voice_url': q.voice_url,
             'example': q.example,
             'scenario': q.scenario,
-            'style': StylePresentationSerializer(style).data
+            'style': q.style
         })
+
+    return Response(result)
+
+
+@api_view(['GET'])
+def questions(request):
+    category = request.GET.get('category', 'normal')
+
+    # Asegúrate de tener tus conjuntos de preguntas listos
+    questions_head = Question.objects.filter(
+        category=category,
+        status=StatusModel.ACTIVE,
+        example__isnull=False
+    )
+
+    questions_tail = Question.objects.filter(
+        category=category,
+        status=StatusModel.ACTIVE
+    ).exclude(id__in=questions_head.values_list('id', flat=True))
+
+    # Convierte QuerySets a listas y selecciona las preguntas
+    questions_head_list = list(questions_head)
+    questions_tail_list = list(questions_tail)
+
+    # Selecciona 1 pregunta de questions_head y hasta 4 de questions_tail
+    selected_head = random.sample(questions_head_list, 1) if questions_head_list else []
+    selected_tail = random.sample(questions_tail_list, min(len(questions_tail_list), 3))
+
+    # Combina y mezcla las preguntas seleccionadas
+    combined_questions = selected_head + selected_tail
+
+    result = []
+    media = settings.SITE_DOMAIN + '/media'
+
+    if category == 'normal':
+        normal_imgs = [
+            'shared/imgs/normal01.jpg',
+            'shared/imgs/normal02.jpg',
+            'shared/imgs/normal03.jpg',
+            'shared/imgs/normal04.jpg',
+            'shared/imgs/normal05.jpg',
+        ]
+
+        img_url = f'{media}/{random.choice(normal_imgs)}'
+
+        for q in combined_questions:
+            result.append({
+                'id': q.id,
+                'question': q.question,
+                'type': q.type,
+                'image_url': q.image_url if q.image_url else img_url,
+                'voice_url': q.voice_url,
+                'example': q.example,
+                'scenario': q.scenario,
+                'style': q.style
+            })
+    elif category == 'jobs':
+        job_imgs = [
+            'shared/imgs/job01.jpg',
+            'shared/imgs/job02.jpg',
+            'shared/imgs/job03.jpg',
+            'shared/imgs/job04.jpg',
+            'shared/imgs/job05.jpg',
+        ]
+
+        img_url = f'{media}/{random.choice(job_imgs)}'
+
+        for q in combined_questions:
+            result.append({
+                'id': q.id,
+                'question': q.question,
+                'type': q.type,
+                'image_url': q.image_url if q.image_url else img_url,
+                'voice_url': q.voice_url,
+                'example': q.example,
+                'scenario': q.scenario,
+                'style': q.style
+            })
+    else:
+        for q in combined_questions:
+            result.append({
+                'id': q.id,
+                'question': q.question,
+                'type': q.type,
+                'image_url': q.image_url,
+                'voice_url': q.voice_url,
+                'example': q.example,
+                'scenario': q.scenario,
+                'style': q.style
+            })
 
     return Response(result)
 
@@ -349,7 +437,6 @@ def set_questions_config(request):
     question_config.save()
 
     return Response('Coool!', status=status.HTTP_200_OK)
-
 
 
 @api_view(['GET'])

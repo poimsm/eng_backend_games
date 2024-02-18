@@ -34,9 +34,8 @@ class BaseModel(models.Model):
         abstract = True
 
 
-
 class Question(BaseModel):
-    id = models.IntegerField(primary_key=True)
+    # id = models.IntegerField(primary_key=True)
     question = models.TextField()
     difficulty = models.PositiveSmallIntegerField(
         null=False,
@@ -46,32 +45,17 @@ class Question(BaseModel):
         null=False,
         choices=QuestionType.choices
     )
-    image_url = models.TextField()
-    scenario = models.JSONField(blank=True, null=True)
-    voice_url = models.TextField()
+    image_url = models.TextField(blank=True, null=True)
+    voice_url = models.TextField(blank=True, null=True)
+    category = models.TextField(blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
+    scenario = models.JSONField(blank=True, null=True)
     example = models.JSONField(blank=True, null=True)
+    style = models.JSONField(blank=True, null=True)
     objects = models.Manager()
 
     class Meta:
         db_table = 'questions'
-
-
-class Style(BaseModel):
-    background_screen = models.CharField(
-        max_length=20, blank=False, null=False)
-    background_challenge = models.CharField(
-        max_length=20, blank=True, null=True)
-    question_opacity = models.DecimalField(
-        default=0.4, max_digits=3, decimal_places=2)
-    question = models.ForeignKey(
-        Question,
-        on_delete=models.CASCADE,
-    )
-    objects = models.Manager()
-
-    class Meta:
-        db_table = 'styles'
 
 
 class Device(BaseModel):
@@ -130,8 +114,10 @@ class UserProfile(BaseModel):
 
 
 class QuestionConfig(BaseModel):
-    questions_type = models.TextField(null=False, blank=False, default='random')
-    questions_search = models.TextField(null=False, blank=False, default='random')
+    questions_type = models.TextField(
+        null=False, blank=False, default='random')
+    questions_search = models.TextField(
+        null=False, blank=False, default='random')
     hardcoded_ids = models.TextField(null=True, blank=True)
     starting_questions = models.JSONField(null=True, blank=True)
     objects = models.Manager()
