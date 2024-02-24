@@ -152,7 +152,7 @@ MEDIA_ROOT = '/media/'
 MEDIA_URL = 'media/'
 
 if DEBUG:
-    SITE_DOMAIN = 'https://82c3-190-208-144-156.ngrok-free.app'
+    SITE_DOMAIN = 'https://c7dd-190-208-144-156.ngrok-free.app'
 else:
     SITE_DOMAIN = 'http://165.227.224.105'
 

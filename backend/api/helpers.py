@@ -43,12 +43,15 @@ def unique(sequence):
 
 
 def read_JSON_file(path):
-    if not path:
+    try:
+        if not path:
+            return None
+        file = open(os.path.join(settings.BASE_DIR, path))
+        data = file.read()
+        file.close()
+        return json.loads(data)
+    except:
         return None
-    file = open(os.path.join(settings.BASE_DIR, path))
-    data = file.read()
-    file.close()
-    return json.loads(data)
 
 
 def get_or_none(classmodel, **kwargs):
@@ -56,7 +59,8 @@ def get_or_none(classmodel, **kwargs):
         return classmodel.objects.get(**kwargs)
     except classmodel.DoesNotExist:
         return None
-    
+
+
 def make_prefix(id):
     if id < 10:
         return f'000{id}'

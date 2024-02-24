@@ -342,7 +342,9 @@ def questions(request):
 
     # Selecciona 1 pregunta de questions_head y hasta 4 de questions_tail
     selected_head = random.sample(questions_head_list, 1) if questions_head_list else []
-    selected_tail = random.sample(questions_tail_list, min(len(questions_tail_list), 3))
+
+    tail_min = 3 if len(questions_head_list) == 0 else 2
+    selected_tail = random.sample(questions_tail_list, min(len(questions_tail_list), tail_min))
 
     # Combina y mezcla las preguntas seleccionadas
     combined_questions = selected_head + selected_tail
@@ -352,11 +354,11 @@ def questions(request):
 
     if category == 'normal':
         normal_imgs = [
-            'shared/imgs/normal01.jpg',
-            'shared/imgs/normal02.jpg',
-            'shared/imgs/normal03.jpg',
-            'shared/imgs/normal04.jpg',
-            'shared/imgs/normal05.jpg',
+            'shared/imgs/normal01.webp',
+            'shared/imgs/normal02.webp',
+            'shared/imgs/normal03.webp',
+            'shared/imgs/normal04.webp',
+            'shared/imgs/normal05.webp',
         ]
 
         img_url = f'{media}/{random.choice(normal_imgs)}'
@@ -374,11 +376,11 @@ def questions(request):
             })
     elif category == 'jobs':
         job_imgs = [
-            'shared/imgs/job01.jpg',
-            'shared/imgs/job02.jpg',
-            'shared/imgs/job03.jpg',
-            'shared/imgs/job04.jpg',
-            'shared/imgs/job05.jpg',
+            'shared/imgs/job01.webp',
+            'shared/imgs/job02.webp',
+            'shared/imgs/job03.webp',
+            'shared/imgs/job04.webp',
+            'shared/imgs/job05.webp',
         ]
 
         img_url = f'{media}/{random.choice(job_imgs)}'
