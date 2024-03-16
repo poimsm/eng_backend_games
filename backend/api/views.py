@@ -30,7 +30,6 @@ from django.conf import settings
 
 # Costume
 from api.constants import AppMsg
-from global_settings.rounds import rounds_config
 from global_settings.categories import categories_list
 from global_settings.languages import languages_list
 
