@@ -10,7 +10,8 @@ app_name = 'api'
 
 urlpatterns = [
     # @app public
-    re_path(r'questions\/?$', questions),
+    re_path(r'categories\/?$', categories_list_view),
+    re_path(r'questions\/?$', questions_list_view),
     re_path(r'screen-flow\/?$', screen_flow),
     re_path(r'device\/?$', device),
     re_path(r'hola\/?$', hola),

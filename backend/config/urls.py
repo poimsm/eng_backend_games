@@ -20,5 +20,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include('api.urls', namespace='api')),
     path('user/', include('users.urls', namespace='user')),
-    path('global/', include('global.urls', namespace='global')),
+    path('global/', include('global_settings.urls', namespace='global')),
 ]

@@ -45,6 +45,8 @@ class Question(BaseModel):
         null=False,
         choices=QuestionType.choices
     )
+    code = models.TextField(blank=True, null=True)
+    translations = models.JSONField(blank=True, null=True)
     image_url = models.TextField(blank=True, null=True)
     voice_url = models.TextField(blank=True, null=True)
     category = models.TextField(blank=True, null=True)
@@ -52,6 +54,7 @@ class Question(BaseModel):
     scenario = models.JSONField(blank=True, null=True)
     example = models.JSONField(blank=True, null=True)
     style = models.JSONField(blank=True, null=True)
+    ranking = models.SmallIntegerField(blank=True, null=True)
     objects = models.Manager()
 
     class Meta:

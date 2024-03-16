@@ -8,6 +8,8 @@ from datetime import date
 import uuid
 from itertools import groupby
 import os
+import traceback
+
 
 # Framework
 from rest_framework.response import Response
@@ -26,8 +28,11 @@ from django.db.models import Case, When
 from django.conf import settings
 
 
-# Data
+# Costume
 from api.constants import AppMsg
+from global_settings.rounds import rounds_config
+from global_settings.categories import categories_list
+from global_settings.languages import languages_list
 
 # Models
 from users.models import User
@@ -56,9 +61,6 @@ import logging
 logger = logging.getLogger('api_v1')
 test_user_id = 1
 appMsg = AppMsg()
-
-
-langues = ['es', 'zh-Hans', 'pt', 'ar', 'hi']
 
 
 @api_view(['GET'])
@@ -204,221 +206,176 @@ def device(request):
         return Response({'device_id': serializer.data['id']}, status=status.HTTP_201_CREATED)
 
 
-def scenario_questions(config):
-    if config.questions_search == 'random':
-        questions = Question.objects.filter(
-            type=QuestionType.SCENARIO,
-            status=StatusModel.ACTIVE
-        )
-        return [random.choice(questions)]
-
-    if config.questions_search == 'hardcoded':
-        ids = config.hardcoded_ids.split(',')
-
-        questions = Question.objects.filter(
-            id__in=[int(x) for x in ids]
-        )
-        return [random.choice(questions)]
-
-
-def normal_questions(config):
-    if config.questions_search == 'random':
-        easy_questions = Question.objects.filter(
-            type=QuestionType.DESCRIBE,
-            status=StatusModel.ACTIVE
-        )
-        easy_question = random.choice(easy_questions)
-
-        quiz_questions = Question.objects.filter(
-            status=StatusModel.ACTIVE
-        ).exclude(type__in=[QuestionType.DESCRIBE, QuestionType.SCENARIO])
-        quiz_question = random.choice(quiz_questions)
-
-        ids = [easy_question.id, quiz_question.id]
-        whatever_questions = list(Question.objects.filter(status=StatusModel.ACTIVE).exclude(
-            id__in=ids).exclude(type=QuestionType.SCENARIO))
-        questions = [easy_question, quiz_question,
-                     random.choice(whatever_questions)]
-
-        return questions
-
-    if config.questions_search == 'hardcoded':
-        ids = config.hardcoded_ids.split(',')
-        ids = [int(x) for x in ids]
-        preserved = Case(*[When(id=id, then=pos)
-                         for pos, id in enumerate(ids)])
-        questions = Question.objects.filter(id__in=ids).order_by(preserved)
-        return questions
-
-
-def random_questions(config):
-    if random.random() < 0.35:
-        return scenario_questions(config)
-    else:
-        return normal_questions(config)
-
-
-def first_time_questions(viewed_pack_ids, starting_question_packs):
-
-    pack_ids = list(map(lambda p: p['id'], starting_question_packs))
-
-    question_ids = []
-
-    for pack_id in pack_ids:
-        if pack_id not in viewed_pack_ids:
-            found_pack = list(
-                filter(lambda x: x['id'] == pack_id, starting_question_packs))
-            question_ids = found_pack[0]['question_ids']
-            break
-
-    if len(question_ids) > 0:
-        preserved = Case(*[When(id=id, then=pos)
-                         for pos, id in enumerate(question_ids)])
-        questions = Question.objects.filter(
-            id__in=question_ids).order_by(preserved)
-        return questions
-    return []
-
-
 @api_view(['GET'])
-def questions2(request):
+def categories_list_view(request):
+    media = f'{settings.SITE_DOMAIN}/media'
 
-    lang = request.GET.get('lang', None)
-    # first_time = request.GET.get('first_time', None)
-    # ids = [int(id) for id in request.GET.get('ids', '').split(',') if id]
-    first_time = '2'
-    ids = [1, 2, 3, 4, 5]
-
-    config = QuestionConfig.objects.all().first()
-
-    if first_time == '1':
-        questions = first_time_questions(ids, config.starting_questions)
-
-    else:
-        if config.questions_type == 'random':
-            questions = random_questions(config)
-
-        if config.questions_type == 'normal':
-            questions = normal_questions(config)
-
-        if config.questions_type == 'scenario':
-            questions = scenario_questions(config)
-
-    result = []
-    for q in questions:
-        result.append({
-            'id': q.id,
-            'question': q.question,
-            'type': q.type,
-            'image_url': q.image_url,
-            'voice_url': q.voice_url,
-            'example': q.example,
-            'scenario': q.scenario,
-            'style': q.style
-        })
-
-    return Response(result)
+    return Response([
+        {
+            'title': 'Outdoor',
+            'subtitle': 'Questions',
+            'category': 'outdoor',
+            'image_url': f'{media}/categories/tent.png'
+        },
+        {
+            'title': 'Normal',
+            'subtitle': 'Questions',
+            'category': 'normal',
+            'image_url': f'{media}/categories/girl.png'
+        },
+        {
+            'title': 'Job Interview',
+            'subtitle': 'Questions',
+            'category': 'jobs',
+            'image_url': f'{media}/categories/job.jpg'
+        },
+        {
+            'title': 'Why & How',
+            'subtitle': 'Questions',
+            'category': 'intriguing',
+            'image_url': f'{media}/categories/why.png'
+        },
+        {
+            'title': 'Fantasy',
+            'subtitle': 'Questions',
+            'category': 'fantasy',
+            'image_url': f'{media}/categories/dragon.png'
+        },
+    ])
 
 
-@api_view(['GET'])
-def questions(request):
-    category = request.GET.get('category', 'normal')
-
-    # Asegúrate de tener tus conjuntos de preguntas listos
-    questions_head = Question.objects.filter(
+def get_random_question(category, excluded_ids):
+    questions = Question.objects.filter(
         category=category,
+        ranking=3,
         status=StatusModel.ACTIVE,
-        example__isnull=False
-    )
-
-    questions_tail = Question.objects.filter(
-        category=category,
-        status=StatusModel.ACTIVE
-    ).exclude(id__in=questions_head.values_list('id', flat=True))
-
-    # Convierte QuerySets a listas y selecciona las preguntas
-    questions_head_list = list(questions_head)
-    questions_tail_list = list(questions_tail)
-
-    # Selecciona 1 pregunta de questions_head y hasta 4 de questions_tail
-    selected_head = random.sample(questions_head_list, 1) if questions_head_list else []
-
-    tail_min = 3 if len(questions_head_list) == 0 else 2
-    selected_tail = random.sample(questions_tail_list, min(len(questions_tail_list), tail_min))
-
-    # Combina y mezcla las preguntas seleccionadas
-    combined_questions = selected_head + selected_tail
-
-    result = []
-    media = settings.SITE_DOMAIN + '/media'
-
-    if category == 'normal':
-        normal_imgs = [
-            'shared/imgs/normal01.webp',
-            'shared/imgs/normal02.webp',
-            'shared/imgs/normal03.webp',
-            'shared/imgs/normal04.webp',
-            'shared/imgs/normal05.webp',
-        ]
-
-        img_url = f'{media}/{random.choice(normal_imgs)}'
-
-        for q in combined_questions:
-            result.append({
-                'id': q.id,
-                'question': q.question,
-                'type': q.type,
-                'image_url': q.image_url if q.image_url else img_url,
-                'voice_url': q.voice_url,
-                'example': q.example,
-                'scenario': q.scenario,
-                'style': q.style
-            })
-    elif category == 'jobs':
-        job_imgs = [
-            'shared/imgs/job01.webp',
-            'shared/imgs/job02.webp',
-            'shared/imgs/job03.webp',
-            'shared/imgs/job04.webp',
-            'shared/imgs/job05.webp',
-        ]
-
-        img_url = f'{media}/{random.choice(job_imgs)}'
-
-        for q in combined_questions:
-            result.append({
-                'id': q.id,
-                'question': q.question,
-                'type': q.type,
-                'image_url': q.image_url if q.image_url else img_url,
-                'voice_url': q.voice_url,
-                'example': q.example,
-                'scenario': q.scenario,
-                'style': q.style
-            })
-    else:
-        for q in combined_questions:
-            result.append({
-                'id': q.id,
-                'question': q.question,
-                'type': q.type,
-                'image_url': q.image_url,
-                'voice_url': q.voice_url,
-                'example': q.example,
-                'scenario': q.scenario,
-                'style': q.style
-            })
-
-    return Response(result)
+        # example__isnull=False
+    ).exclude(id__in=excluded_ids)
+    return random.choice(questions)
 
 
-def get_translation(items, lang):
-    lang = 'es' if lang is None else lang
-    result = ''
-    for item in items:
-        if item['lang'] == lang:
-            result = item['text']
-    return result
+def get_question_by_code(question_code):
+    return Question.objects.filter(
+        code=question_code
+    ).first()
+
+
+@api_view(['GET'])
+def questions_list_view(request):
+    try:
+        round_number = request.GET.get('round', None)
+        language = request.GET.get('lang', None)
+        category = request.GET.get('category', None)
+        codes = request.GET.get('codes', None)
+
+        if not round_number:
+            return Response([])
+
+        if category not in categories_list:
+            return Response([])
+
+        if language not in languages_list:
+            return Response([])
+
+        questions = []
+
+        if codes:
+            codes_list = codes.split(',')
+            for code in codes_list:
+                if len(questions) >= 3:
+                    break
+                q = get_question_by_code(code)
+                questions.append(q)
+
+            questions_left = 3 - len(questions)
+
+            for _ in range(questions_left):
+                excluded_ids = [
+                    question.id for question in questions if question]
+                q = get_random_question(category, excluded_ids)
+                questions.append(q)
+        else:
+            questions_left = 3
+            for _ in range(questions_left):
+                excluded_ids = [
+                    question.id for question in questions if question]
+                q = get_random_question(category, excluded_ids)
+                questions.append(q)
+
+        result = []
+        media = settings.SITE_DOMAIN + '/media'
+
+        if category == 'normal':
+            normal_imgs = [
+                'shared/imgs/normal01.webp',
+                'shared/imgs/normal02.webp',
+                'shared/imgs/normal03.webp',
+                'shared/imgs/normal04.webp',
+                'shared/imgs/normal05.webp',
+            ]
+
+            img_url = f'{media}/{random.choice(normal_imgs)}'
+
+            for q in questions:
+                result.append({
+                    'id': q.id,
+                    'question': q.question,
+                    'translation': q.translations[language],
+                    'type': q.type,
+                    'code': q.code,
+                    'image_url': q.image_url if q.image_url else img_url,
+                    'voice_url': q.voice_url,
+                    'example': q.example,
+                    'scenario': q.scenario,
+                    'style': q.style
+                })
+        elif category == 'jobs':
+            job_imgs = [
+                'shared/imgs/job01.webp',
+                'shared/imgs/job02.webp',
+                'shared/imgs/job03.webp',
+                'shared/imgs/job04.webp',
+                'shared/imgs/job05.webp',
+            ]
+
+            img_url = f'{media}/{random.choice(job_imgs)}'
+
+            for q in questions:
+                result.append({
+                    'id': q.id,
+                    'question': q.question,
+                    'translation': q.translations[language],
+                    'type': q.type,
+                    'code': q.code,
+                    'image_url': q.image_url if q.image_url else img_url,
+                    'voice_url': q.voice_url,
+                    'example': q.example,
+                    'scenario': q.scenario,
+                    'style': q.style
+                })
+        else:
+            for q in questions:
+                logger.debug(q)
+                result.append({
+                    'id': q.id,
+                    'question': q.question,
+                    'translation': q.translations[language],
+                    'type': q.type,
+                    'code': q.code,
+                    'image_url': q.image_url,
+                    'voice_url': q.voice_url,
+                    'example': q.example,
+                    'scenario': q.scenario,
+                    'style': q.style
+                })
+
+        return Response(result)
+
+    except Exception as err:
+        logger.error(err)
+        stacktrace = traceback.format_exc()
+        logger.error("Stacktrace:\n%s", stacktrace)
+        return Response([])
 
 
 @api_view(['GET'])

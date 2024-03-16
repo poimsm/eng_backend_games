@@ -21,31 +21,31 @@ class Command(BaseCommand):
             console.info('Reading questions JSON files...')
             normal_questions = read_JSON_file('data/questions/normal.json')
             intrig_questions = read_JSON_file('data/questions/intriguing.json')
-            picture_questions = read_JSON_file('data/questions/picture.json')
             fantasy_questions = read_JSON_file('data/questions/fantasy.json')
-            outdoor_questions = read_JSON_file('data/questions/outdoor.json')
-            puzzle_questions = read_JSON_file('data/questions/puzzle.json')
+            # outdoor_questions = read_JSON_file('data/questions/outdoor.json')
             job_questions = read_JSON_file('data/questions/jobs.json')
-            rpg_questions = read_JSON_file('data/questions/rpg.json')
+            # picture_questions = read_JSON_file('data/questions/picture.json')
+            # puzzle_questions = read_JSON_file('data/questions/puzzle.json')
+            # rpg_questions = read_JSON_file('data/questions/rpg.json')
 
             console.info('[x] Normal: ' + str(len(normal_questions)))
             console.info('[x] Intriguing: ' + str(len(intrig_questions)))
-            console.info('[x] Picture: ' + str(len(picture_questions)))
             console.info('[x] Fantasy: ' + str(len(fantasy_questions)))
-            console.info('[x] Outdoor: ' + str(len(outdoor_questions)))
-            console.info('[x] Puzzle: ' + str(len(puzzle_questions)))
+            # console.info('[x] Outdoor: ' + str(len(outdoor_questions)))
             console.info('[x] Jobs: ' + str(len(job_questions)))
-            console.info('[x] RPG: ' + str(len(rpg_questions)))
+            # console.info('[x] Picture: ' + str(len(picture_questions)))
+            # console.info('[x] Puzzle: ' + str(len(puzzle_questions)))
+            # console.info('[x] RPG: ' + str(len(rpg_questions)))
 
             console.info('Creating questions...')
             self.create_questions(normal_questions)
             self.create_questions(intrig_questions)
-            self.create_questions(picture_questions)
             self.create_questions(fantasy_questions)
-            self.create_questions(outdoor_questions)
-            self.create_questions(puzzle_questions)
+            # self.create_questions(outdoor_questions)
             self.create_questions(job_questions)
-            self.create_questions(rpg_questions)
+            # self.create_questions(picture_questions)
+            # self.create_questions(puzzle_questions)
+            # self.create_questions(rpg_questions)
 
             console.info('Done')
         except:
@@ -91,18 +91,25 @@ class Command(BaseCommand):
             style = self.create_style(q.get('style', None))
             difficulty = self.difficulty_level(q['difficulty'])
 
+            translations = read_JSON_file(q['translations'])
+            if not translations:
+                print(f"MISSING translations: {q['question']}")
+
             Question(
                 question=q['question'],
+                translations=translations,
                 voice_url=voice_url,
                 image_url=image_url,
                 difficulty=difficulty,
                 category=q['category'],
                 notes=q.get('help', None),
                 type=q['type'],
+                code=q.get('code', None),
+                ranking=q.get('ranking', None),
                 example=example,
                 scenario=scenario,
                 style=style,
-                status=1 if q['ready'] else 0
+                status=0 if q['disabled'] else 1
             ).save()
 
     def create_url(self, chunk):
@@ -122,11 +129,11 @@ class Command(BaseCommand):
             return {
                 'background_screen': '#171717',
                 'background_challenge': '#2A262C',
-                'question_opacity': 0.4,
+                'question_opacity': 0.3,
             }
 
         return {
             'background_screen': style.get('background_screen', '#171717'),
             'background_challenge': style.get('background_challenge', '#2A262C'),
-            'question_opacity': style.get('question_opacity', 0.4),
+            'question_opacity': style.get('question_opacity', 0.3),
         }

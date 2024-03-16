@@ -47,7 +47,7 @@ DJANGO_APPS = [
 PROJECT_APPS = [
     'api',
     'users',
-    'global',
+    'global_settings',
 ]
 
 THIRD_PARTY_APPS = [
@@ -151,14 +151,8 @@ STATIC_URL = 'static/'
 MEDIA_ROOT = '/media/'
 MEDIA_URL = 'media/'
 
-if DEBUG:
-    SITE_DOMAIN = 'https://c7dd-190-208-144-156.ngrok-free.app'
-else:
-    SITE_DOMAIN = 'http://165.227.224.105'
-
-API_VERSION = 'v1'
-BASE_URL = SITE_DOMAIN + '/api/' + API_VERSION
-
+SITE_DOMAIN = os.getenv('SITE_DOMAIN')
+BASE_URL = SITE_DOMAIN + '/api/v1'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
